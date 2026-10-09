@@ -44,24 +44,62 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   String calculate(String newVar) {
     if (newVar == 'current') {
       return continuousVar;
-    }
-    else if(newVar == 'C'){
+    } else if (newVar == 'C') {
       return continuousVar = '';
     }
     return continuousVar += newVar;
   }
-  num actualcalculate(){
-    for(int i = 0; i < continuousVar.length; i++){
-      
+
+  num actualcalculate() {
+    List<num> numberList = [];
+    List<num> queue = [];
+    String str = continuousVar;
+    if (str.startsWith('-')) {
+      str = "0$str";
+    }
+    List<String> rawnums = str.split(RegExp(r'[+\-/*]'));
+    List<String> operators = [];
+    num result = 0;
+
+    for (int i = 0; i < rawnums.length; i++) {
+      numberList.add(double.parse(rawnums[i]));
+    }
+    for (int i = 0; i < str.length; i++) {
+      if (str[i] == '+' || str[i] == '-' || str[i] == '/' || str[i] == '*') {
+        operators.add(str[i]);
+      }
+    }
+
+    for (int i = 0; i < operators.length; i++) {
+      if (operators[i] == '+'){
+        queue.add(numberList[i]);
+      }
+      else if (operators[i] == '-') {
+        queue.add(numberList[i]);
+        numberList[i + 1] = numberList[i + 1] * -1;
+      } else if (operators[i] == '*') {
+        numberList[i + 1] = numberList[i] * numberList[i + 1];
+      } else if (operators[i] == '/') {
+        numberList[i + 1] = numberList[i] / numberList[i + 1];
+      }
+      if (i + 1 >= operators.length) {
+        queue.add(numberList[i + 1]);
+      }
+    }
+
+    for (int i = 0; i < queue.length; i++) {
+      result += queue[i];
     }
 
     return result;
   }
+
   @override
-  void dispose(){
+  void dispose() {
     textcontroller.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,20 +116,16 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(9),
               ),
-              
-            child: SizedBox(
-              height: 80,
-              width: 500,
-              
-              child: Text(
-                textcontroller.text,
-                style: TextStyle(
-                  fontSize: 52,
-                  color: Colors.red,
+
+              child: SizedBox(
+                height: 80,
+                width: 500,
+
+                child: Text(
+                  textcontroller.text,
+                  style: TextStyle(fontSize: 52, color: Colors.red),
                 ),
               ),
-
-            ),
             ),
             Flexible(
               flex: 4,
@@ -108,7 +142,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                         print(textcontroller.text);
                         setState(() {
                           calculate(actions[index]);
-                          textcontroller = TextEditingController(text: calculate("current") );
+                          textcontroller = TextEditingController(
+                            text: calculate("current"),
+                          );
                         });
                       },
                       style: ButtonStyle(
@@ -132,20 +168,24 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 padding: EdgeInsets.all(40),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(fixedSize: Size(200, 100)),
-                    child: Text('='),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(fixedSize: Size(200, 100)),
-                    icon: Icon(Icons.delete),
-                    label: Text('Delete'),
-                  ),
-                ],
-              ),
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        fixedSize: Size(200, 100),
+                      ),
+                      child: Text('='),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        fixedSize: Size(200, 100),
+                      ),
+                      icon: Icon(Icons.delete),
+                      label: Text('Delete'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
