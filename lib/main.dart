@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(CalculatorApp());
 
@@ -7,7 +8,11 @@ class CalculatorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(title: 'Calculator App', home: CalculatorScreen());
+    return MaterialApp(
+      title: 'Calculator App',
+      home: CalculatorScreen(),
+      debugShowCheckedModeBanner: false,
+    );
   }
 }
 
@@ -19,9 +24,24 @@ class CalculatorScreen extends StatefulWidget {
   _CalculatorScreenState createState() => _CalculatorScreenState();
 }
 
+dynamic textcontroller = TextEditingController(text: '');
+String continuousVar = '';
+Future<List<dynamic>> readHistory() async {
+  List<dynamic> calc = [];
+  for (int i = 0; i < calculationCounter; i++) {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(i.toString()) != null) {
+      calc.add(prefs.getString(i.toString()));
+    } else {
+      calc.add("");
+    }
+  }
+  return calc;
+}
+
+int calculationCounter = 0;
+
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  dynamic textcontroller = TextEditingController(text: 'asdf');
-  String continuousVar = '';
   List<String> actions = [
     '1',
     '2',
@@ -41,13 +61,29 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     '/',
   ];
 
-  String calculate(String newVar) {
+  String calculate(String newVar, bool answer) {
     if (newVar == 'current') {
       return continuousVar;
     } else if (newVar == 'C') {
       return continuousVar = '';
+    } else if (answer == true) {
+      addToHistory((continuousVar + " = $newVar"));
+      setState(() {
+        calculationCounter++;
+      });
+      return continuousVar = "= $newVar";
+    } else if (newVar == "Delete") {
+      return continuousVar = continuousVar.substring(
+        0,
+        continuousVar.length - 1,
+      );
     }
     return continuousVar += newVar;
+  }
+
+  Future<void> addToHistory(String calculation) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(calculationCounter.toString(), calculation);
   }
 
   num actualcalculate() {
@@ -56,13 +92,21 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     String str = continuousVar;
     if (str.startsWith('-')) {
       str = "0$str";
+    } else if (str.startsWith("= ")) {
+      str = str.substring(2, str.length);
     }
     List<String> rawnums = str.split(RegExp(r'[+\-/*]'));
     List<String> operators = [];
     num result = 0;
 
     for (int i = 0; i < rawnums.length; i++) {
-      numberList.add(double.parse(rawnums[i]));
+      try {
+        numberList.add(double.parse(rawnums[i]));
+      } on FormatException {
+        setState(() {
+          textcontroller = TextEditingController(text: "Format Error");
+        });
+      }
     }
     for (int i = 0; i < str.length; i++) {
       if (str[i] == '+' || str[i] == '-' || str[i] == '/' || str[i] == '*') {
@@ -71,16 +115,23 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     }
 
     for (int i = 0; i < operators.length; i++) {
-      if (operators[i] == '+'){
+      if (operators[i] == '+') {
         queue.add(numberList[i]);
-      }
-      else if (operators[i] == '-') {
+      } else if (operators[i] == '-') {
         queue.add(numberList[i]);
         numberList[i + 1] = numberList[i + 1] * -1;
       } else if (operators[i] == '*') {
         numberList[i + 1] = numberList[i] * numberList[i + 1];
       } else if (operators[i] == '/') {
+        if (numberList[i+1] == 0) {
+          setState(() {
+            textcontroller = TextEditingController(text: "Error");
+          });
+          throw ArgumentError('Cannot divide by 0');
+        }else{
         numberList[i + 1] = numberList[i] / numberList[i + 1];
+
+        }
       }
       if (i + 1 >= operators.length) {
         queue.add(numberList[i + 1]);
@@ -106,6 +157,16 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       appBar: AppBar(
         title: const Text('Calculator App'),
         backgroundColor: Colors.red,
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => CalcHistory()));
+            },
+            tooltip: 'Open History',
+            icon: Icon(Icons.history),
+          ),
+        ],
       ),
       body: Center(
         child: Column(
@@ -139,11 +200,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   itemBuilder: (BuildContext context, int index) {
                     return ElevatedButton(
                       onPressed: () {
-                        print(textcontroller.text);
                         setState(() {
-                          calculate(actions[index]);
+                          calculate(actions[index], false);
                           textcontroller = TextEditingController(
-                            text: calculate("current"),
+                            text: calculate("current", false),
                           );
                         });
                       },
@@ -169,15 +229,34 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ElevatedButton(
-                      onPressed: () {},
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          textcontroller = TextEditingController(
+                            text: calculate(actualcalculate().toString(), true),
+                          );
+                        });
+                      },
                       style: ElevatedButton.styleFrom(
                         fixedSize: Size(200, 100),
                       ),
-                      child: Text('='),
+                      label: Text('Result'),
+                      icon: Icon(Icons.equalizer_sharp),
                     ),
                     ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        setState(() {
+                          try {
+                            textcontroller = TextEditingController(
+                              text: calculate("Delete", false),
+                            );
+                          } on RangeError {
+                            textcontroller = TextEditingController(
+                              text: calculate(" ", false),
+                            );
+                          }
+                        });
+                      },
                       style: ElevatedButton.styleFrom(
                         fixedSize: Size(200, 100),
                       ),
@@ -192,6 +271,65 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         ),
       ),
       backgroundColor: Colors.black87,
+    );
+  }
+}
+
+class CalcHistory extends StatefulWidget {
+  const CalcHistory({super.key});
+
+  @override
+  CalcHistoryState createState() => CalcHistoryState();
+}
+
+class CalcHistoryState extends State<CalcHistory> {
+  Future<void> clearHistory() async {
+    setState(() {
+      calculationCounter = 0;
+    });
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Calculation History'),
+        backgroundColor: Colors.red,
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          clearHistory();
+        },
+        backgroundColor: Colors.red,
+        child: Icon(Icons.delete),
+      ),
+      backgroundColor: Colors.black87,
+      body: FutureBuilder(
+        builder: (context, snapshot) {
+          if (ConnectionState.active != null && !snapshot.hasData) {
+            return Center(child: Text('Loading History'));
+          }
+          if (ConnectionState.done != null && snapshot.hasError) {
+            return (Center(
+              child: Text("Error in loading history: ${snapshot.error}"),
+            ));
+          }
+
+          return ListView.builder(
+            itemCount: calculationCounter,
+            itemBuilder: (BuildContext context, int index) {
+              return Text(
+                snapshot.data![index].toString(),
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              );
+            },
+          );
+        },
+        future: readHistory(),
+      ),
     );
   }
 }
