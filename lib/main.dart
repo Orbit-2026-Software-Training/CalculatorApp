@@ -119,7 +119,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         operators.add(str[i]);
       }
     }
-
+  
     for (int i = 0; i < operators.length; i++) {
       if (operators[i] == '+') {
         queue.add(numberList[i]);
