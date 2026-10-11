@@ -27,15 +27,11 @@ class CalculatorScreen extends StatefulWidget {
 dynamic textcontroller = TextEditingController(text: '');
 String continuousVar = '';
 Future<List<dynamic>> readHistory() async {
-  List<dynamic> calc = [];
-  for (int i = 0; i < calculationCounter; i++) {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (prefs.getString(i.toString()) != null) {
-      calc.add(prefs.getString(i.toString()));
-    } else {
-      calc.add("");
-    }
-  }
+  
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  List<dynamic> calc = prefs.getKeys().map((key) => prefs.get(key)).toList();
+
   return calc;
 }
 
@@ -71,12 +67,11 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     } else if (newVar == 'C') {
       return continuousVar = '';
     } else if (answer == true) {
-      
+      addToHistory(("$continuousVar = $newVar"));
        setState(() {
         calculationCounter++;
         
       });
-      addToHistory(("$continuousVar = $newVar"));
      
       return continuousVar = "= $newVar";
     } else if (newVar == "Delete") {
@@ -330,10 +325,10 @@ class CalcHistoryState extends State<CalcHistory> {
       backgroundColor: Colors.black87,
       body: FutureBuilder(
         builder: (context, snapshot) {
-          if (ConnectionState.active != null && !snapshot.hasData) {
+          if (!snapshot.hasData) {
             return Center(child: Text('Loading History'));
           }
-          if (ConnectionState.done != null && snapshot.hasError) {
+          if (snapshot.hasError) {
             return (Center(
               child: Text("Error in loading history: ${snapshot.error}"),
             ));
