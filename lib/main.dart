@@ -60,6 +60,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     'C',
     '/',
   ];
+  Future<void> addToHistory(String calculation) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(calculationCounter.toString(), calculation);
+  }
 
   String calculate(String newVar, bool answer) {
     if (newVar == 'current') {
@@ -67,10 +71,13 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     } else if (newVar == 'C') {
       return continuousVar = '';
     } else if (answer == true) {
-      addToHistory((continuousVar + " = $newVar"));
-      setState(() {
+      
+       setState(() {
         calculationCounter++;
+        
       });
+      addToHistory(("$continuousVar = $newVar"));
+     
       return continuousVar = "= $newVar";
     } else if (newVar == "Delete") {
       return continuousVar = continuousVar.substring(
@@ -81,20 +88,19 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     return continuousVar += newVar;
   }
 
-  Future<void> addToHistory(String calculation) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(calculationCounter.toString(), calculation);
-  }
-
   num actualcalculate() {
     List<num> numberList = [];
     List<num> queue = [];
     String str = continuousVar;
+    if(str.startsWith("= -")){
+      str = "0${str.substring(2,str.length)}";
+    }
     if (str.startsWith('-')) {
       str = "0$str";
     } else if (str.startsWith("= ")) {
       str = str.substring(2, str.length);
     }
+    
     List<String> rawnums = str.split(RegExp(r'[+\-/*]'));
     List<String> operators = [];
     num result = 0;
@@ -123,14 +129,13 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       } else if (operators[i] == '*') {
         numberList[i + 1] = numberList[i] * numberList[i + 1];
       } else if (operators[i] == '/') {
-        if (numberList[i+1] == 0) {
+        if (numberList[i + 1] == 0) {
           setState(() {
             textcontroller = TextEditingController(text: "Error");
           });
           throw ArgumentError('Cannot divide by 0');
-        }else{
-        numberList[i + 1] = numberList[i] / numberList[i + 1];
-
+        } else {
+          numberList[i + 1] = numberList[i] / numberList[i + 1];
         }
       }
       if (i + 1 >= operators.length) {
@@ -172,9 +177,11 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Container(
+            Padding(
+              padding: EdgeInsets.fromLTRB(0, 80, 0, 0),
+            child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.red,
                 borderRadius: BorderRadius.circular(9),
               ),
 
@@ -184,39 +191,47 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
                 child: Text(
                   textcontroller.text,
-                  style: TextStyle(fontSize: 52, color: Colors.red),
+                  style: TextStyle(fontSize: 52, color: Colors.black87),
                 ),
               ),
+            ),
             ),
             Flexible(
               flex: 4,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(80, 170, 80, 0),
+                padding: EdgeInsets.fromLTRB(80, 30, 80, 0),
                 child: GridView.builder(
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 4,
                   ),
                   itemCount: actions.length,
                   itemBuilder: (BuildContext context, int index) {
-                    return ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          calculate(actions[index], false);
-                          textcontroller = TextEditingController(
-                            text: calculate("current", false),
-                          );
-                        });
-                      },
-                      style: ButtonStyle(
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                    return Padding(
+                      padding: EdgeInsets.all(10),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            calculate(actions[index], false);
+                            textcontroller = TextEditingController(
+                              text: calculate("current", false),
+                            );
+                          });
+                        },
+                        style: ButtonStyle(
+                          shape:
+                              WidgetStateProperty.all<RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                          backgroundColor: WidgetStateProperty.all(
+                            Colors.red,
                           ),
                         ),
-                      ),
-                      child: Text(
-                        actions[index],
-                        style: TextStyle(fontSize: 45, color: Colors.red),
+                        child: Text(
+                          actions[index],
+                          style: TextStyle(fontSize: 45, color: Colors.black87),
+                        ),
                       ),
                     );
                   },
@@ -239,9 +254,14 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         fixedSize: Size(200, 100),
+                        backgroundColor: Colors.red,
                       ),
                       label: Text('Result'),
                       icon: Icon(Icons.equalizer_sharp),
+                    ),
+                    SizedBox(
+                      height: 40,
+                      width: 50,
                     ),
                     ElevatedButton.icon(
                       onPressed: () {
@@ -259,6 +279,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         fixedSize: Size(200, 100),
+                        backgroundColor: Colors.red,
                       ),
                       icon: Icon(Icons.delete),
                       label: Text('Delete'),
