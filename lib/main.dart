@@ -141,7 +141,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     for (int i = 0; i < queue.length; i++) {
       result += queue[i];
     }
-
+    if(result.toString().length > 10){
+      result = double.parse(result.toString().substring(0,12));
+    }
     return result;
   }
 
